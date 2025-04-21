@@ -54,11 +54,11 @@ class BondValenceProcessor:
         print(f'Processing {cation}-{anion} system...')
         
         # Setup processing pipeline
-        docs = self._download_materials_data(cation)
+        docs = self._download_materials_data(cation, anion)
         res_dir = f'res/{cation}{anion}'
         mids = self.get_possible_species(res_dir, docs)
         if not mids:
-            print(f"No materials with possible species found for {cation}-O system, skipping...")
+            print(f"No materials with possible species found for {cation}-{anion} system, skipping...")
             return
         bonds_docs = self._download_bonding_data(mids)
         
@@ -78,7 +78,8 @@ class BondValenceProcessor:
             bonds_docs=bonds_docs,
             results=results,
             res_dir=res_dir,
-            cation=cation
+            cation=cation,
+            anion=anion
         )
         
         # Save final results
@@ -141,7 +142,7 @@ class BondValenceProcessor:
             species_matID_path=str(Path(res_dir) / "params" / "dict_matID_possible_species.json")
         )
         
-        for material in tqdm(bonds_docs, desc=f'Processing {cation} materials'):
+        for material in tqdm(bonds_docs, desc=f'Processing {cation}-{anion} materials'):
             if material.material_id in results['solved']:
                 continue
                 

@@ -429,8 +429,17 @@ class BVParamSolver:
             'direct': lambda: direct(self.objective, [R0_bounds, B_bounds], args=(eqs_list_sympy,)).x
         }
         
-        # Get selected algorithm or default to SHGO
-        if self.algo not in optimizers:
-            print(f"Warning: Algorithm '{self.algo}' not found. Using default SHGO optimizer.")
-        result = optimizers.get(self.algo, optimizers['shgo'])()
-        return result if isinstance(result, tuple) else (result[0], result[1])
+        # Validate and normalize algorithm selection
+        algo = self.algo.lower()
+        if algo not in optimizers:
+            valid_algos = list(optimizers.keys())
+            if algo not in valid_algos:
+                print(f"Warning: Invalid algorithm '{algo}'. Must be one of: {', '.join(valid_algos)}. Using default SHGO optimizer.")
+                algo = 'shgo'
+        
+        # Run optimization with selected algorithm
+        optimizer = optimizers[algo]
+        result = optimizer()
+        
+        # Ensure consistent return type (tuple)
+        return tuple(result) if isinstance(result, (list, np.ndarray)) else result
