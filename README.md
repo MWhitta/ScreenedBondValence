@@ -7,12 +7,13 @@ A Python package for fitting bond valence parameters $R_0$ and $B$ for cation-an
 from bond_valence_processor import BondValenceProcessor
 
 cations = ['Li'] # a list of cation species 
-my_api_key = "your_api_key"
+anion = 'O' # anion 
+my_api_key = "your_api_key" # api key for materialsproject.org 
 algos = ['shgo', 'brute', 'diff', 'dual_annealing', 'direct']
-processor = BondValenceProcessor(my_api_key, algos, cations)
+processor = BondValenceProcessor(my_api_key, algos, cations, anion)
     
 for cation in cations:
-    processor.process_cation_system(cation)
+    processor.process_cation_system(cation, anion)
     
 ```
 
