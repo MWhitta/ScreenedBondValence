@@ -48,16 +48,17 @@ pip install -r requirements.txt
 from bond_valence_processor import BondValenceProcessor
 
 cations = ['Li']  # list of cation species to process
-anion = 'O'       # anion species
+anions = ['O']    # list of anion species to process
 my_api_key = "your_api_key"  # your Materials Project API key
 
 # optimization algorithms to use
 algos = ['shgo', 'brute', 'diff', 'dual_annealing', 'direct']
 
-processor = BondValenceProcessor(my_api_key, algos, cations, anion)
+processor = BondValenceProcessor(my_api_key, algos, cations, anions)
 
 for cation in cations:
-    processor.process_cation_system(cation, anion)
+    for anion in anions:
+        processor.process_cation_system(cation, anion)
 ```
 
 ### As a Jupyter Notebook

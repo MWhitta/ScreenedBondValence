@@ -16,24 +16,25 @@ class MaterialData:
     formula_pretty: Optional[str] = None
 
 class BondValenceProcessor:
-    def __init__(self, api_key: str, algos: List[str], cations: List[str], anion: str):
+    def __init__(self, api_key: str, algos: List[str], cations: List[str], anions: List[str]):
         self.api_key = api_key
         self.algos = algos
         self.cations = cations
-        self.anion = anion
+        self.anions = anions
         self._ensure_directories()
 
     def _ensure_directories(self) -> None:
-        """Ensure required directories exist for all cations"""
+        """Ensure required directories exist for all cation-anion pairs"""
         Path("res").mkdir(exist_ok=True)
         for cation in self.cations:
-            cation_dir = Path(f"res/{cation}{self.anion}")
-            cation_dir.mkdir(exist_ok=True)
-            (cation_dir / "params").mkdir(exist_ok=True)
-            (cation_dir / "R0Bs").mkdir(exist_ok=True)
-            (cation_dir / "no_solu").mkdir(exist_ok=True)
-            for algo in self.algos:
-                (cation_dir / "R0Bs" / algo).mkdir(exist_ok=True)
+            for anion in self.anions:
+                pair_dir = Path(f"res/{cation}{anion}")
+                pair_dir.mkdir(exist_ok=True)
+                (pair_dir / "params").mkdir(exist_ok=True)
+                (pair_dir / "R0Bs").mkdir(exist_ok=True)
+                (pair_dir / "no_solu").mkdir(exist_ok=True)
+                for algo in self.algos:
+                    (pair_dir / "R0Bs" / algo).mkdir(exist_ok=True)
 
     def get_possible_species(self, save_dir: str, docs: List[MaterialData]) -> List[str]:
         """Extract possible species from materials documents"""
@@ -221,15 +222,17 @@ class BondValenceProcessor:
 if __name__ == "__main__":
     # User-defined parameters
     user_cations = ['Li', 'Na', 'K', 'Rb', 'Cs']  # Can be modified by user
-    user_anion = 'O'
+    user_anions = ['O']  # Can be modified by user
     user_algos = ['shgo', 'brute', 'diff', 'dual_annealing', 'direct']
     api_key = "your_api_key"  # Should be provided by user
-    
+
     processor = BondValenceProcessor(
         api_key=api_key,
         algos=user_algos,
-        cations=user_cations
+        cations=user_cations,
+        anions=user_anions
     )
-    
+
     for cation in user_cations:
-        processor.process_cation_system(cation, user_anion)
+        for anion in user_anions:
+            processor.process_cation_system(cation, anion)
