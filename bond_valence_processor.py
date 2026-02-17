@@ -199,7 +199,7 @@ class BondValenceProcessor:
                 chem_formula=material.formula_pretty,
                 R0_bounds=(0, 5),
             )
-            
+
             if solution:
                 output_file = Path(res_dir) / "R0Bs" / algorithm / f"{material.material_id}.txt"
                 np.savetxt(output_file, solution)

@@ -365,33 +365,33 @@ class BVParamSolver:
         Returns:
             tuple: (equations, B bounds)
         """
-        target_bonds = [e for e in bond_type_list 
-                       if re.split(r'\d+', e)[0] == cation 
+        target_bonds = [e for e in bond_type_list
+                       if re.split(r'\d+', e)[0] == cation
                        and re.split(r'\d+', e)[1] == anion]
 
         bmax, bmin = -10, 1000
         eqs_list = []
-        
+
         for bond in target_bonds:
             sij = networkValence_dict[bond]
             if sij <= 0:
                 self.no_sol.append((matID, cation, anion, reduced_formula, 'negative_Sij'))
                 return [], None
-                
+
             eqs_list.append(f'R0 - B*log({sij}) - {bondLen_dict[bond]}')
-            
+
             if sij != 1:
                 b1 = (R0_bounds[0] - bondLen_dict[bond])/np.log(sij)
                 b2 = (R0_bounds[1] - bondLen_dict[bond])/np.log(sij)
                 bmax = max(bmax, b1, b2)
                 bmin = min(bmin, b1, b2)
-                
+
         if not (-10 < bmax < np.inf) or not (-10 < bmin < np.inf):
             bmin, bmax = -5, 5
-            
+
         if not eqs_list:
             self.no_sol.append((matID, cation, anion, reduced_formula, 'no_eqs_from_graph'))
-            
+
         return eqs_list, (bmin, bmax)
 
     def solve_R0Bs(self, cation, anion, bond_type_list, networkValence_dict,
@@ -417,9 +417,9 @@ class BVParamSolver:
                                                       materID, chem_formula, R0_bounds)
         if not eqs_list_math:
             return []
-            
+
         eqs_list_sympy = [sp.sympify(eq) for eq in eqs_list_math]
-        
+
         # Select optimization algorithm
         optimizers = {
             'brute': lambda: brute(self.objective, [R0_bounds, B_bounds], args=(eqs_list_sympy,)),
@@ -428,7 +428,7 @@ class BVParamSolver:
             'dual_annealing': lambda: dual_annealing(self.objective, [R0_bounds, B_bounds], args=(eqs_list_sympy,)).x,
             'direct': lambda: direct(self.objective, [R0_bounds, B_bounds], args=(eqs_list_sympy,)).x
         }
-        
+
         # Validate and normalize algorithm selection
         algo = self.algo.lower()
         if algo not in optimizers:
@@ -436,10 +436,10 @@ class BVParamSolver:
             if algo not in valid_algos:
                 print(f"Warning: Invalid algorithm '{algo}'. Must be one of: {', '.join(valid_algos)}. Using default SHGO optimizer.")
                 algo = 'shgo'
-        
+
         # Run optimization with selected algorithm
         optimizer = optimizers[algo]
         result = optimizer()
-        
+
         # Ensure consistent return type (tuple)
         return tuple(result) if isinstance(result, (list, np.ndarray)) else result
