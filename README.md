@@ -121,6 +121,29 @@ ScreenedBondValence/
 └── README.md
 ```
 
+## Web App (Gradio)
+
+An interactive web interface is included for calculating bond valence parameters from a single CIF file without using the Materials Project API.
+
+### Run locally
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
+
+Then open the URL printed in the terminal (typically `http://127.0.0.1:7860`).
+
+### Deploy to HuggingFace Spaces
+
+1. Create a new Space at [huggingface.co/new-space](https://huggingface.co/new-space) with SDK **Gradio**
+2. Push this repo to the Space:
+   ```bash
+   git remote add hf https://huggingface.co/spaces/YOUR_USERNAME/BVSearchApp
+   git push hf main
+   ```
+3. The Space will build and deploy automatically
+
 ## References
 
 - Brown, I. D. (2009). Recent Developments in the Methods and Applications of the Bond Valence Model. *Chemical Reviews*, 109(12), 6858-6919.
