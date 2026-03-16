@@ -1,0 +1,32 @@
+{
+  "material_id": "1011191_aspod",
+  "formula_pretty": "LiAl(SiO3)2",
+  "oxidation_state_source": "cif",
+  "site_count": 40,
+  "edge_count": 80,
+  "charge_map": {
+    "Al": 3.0,
+    "Li": 1.0,
+    "O": -2.0,
+    "Si": 4.0
+  },
+  "bond_valences": {
+    "Al1O1": 0.45,
+    "Al1O2": 0.6,
+    "Li1O1": 0.125,
+    "Li1O2": 0.275,
+    "Li1O3": 0.1,
+    "Si1O1": 0.975,
+    "Si1O2": 1.125,
+    "Si1O3": 0.95
+  },
+  "summary": {
+    "mid": "1011191_aspod",
+    "formula": "LiAl(SiO3)2",
+    "R0": 2.1735372659411123,
+    "B": 0.03786298911394495,
+    "R0_std": 0.0,
+    "B_std": 0.0,
+    "n_algos": 1
+  }
+}

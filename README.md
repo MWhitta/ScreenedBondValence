@@ -1,148 +1,158 @@
 # ScreenedBondValence
 
-A Python package for fitting bond valence parameters $R_0$ and $B$ for cation-anion pairs using crystal structure data from the [Materials Project](https://materialsproject.org/).
+`ScreenedBondValence` fits bond-valence parameters `R0` and `B` for cation-anion pairs from crystal structures.
 
-Bond valence analysis relates bond lengths to bond strengths through the equation:
+The repo is now package-first:
 
-$$S_{ij} = \exp\left(\frac{R_0 - R_{ij}}{B}\right)$$
+- one Python package under `screened_bond_valence/`
+- one CLI entrypoint, `screened-bond-valence`
+- one test suite under `tests/`
 
-where $S_{ij}$ is the bond valence, $R_{ij}$ is the bond length, and $R_0$ and $B$ are empirical parameters specific to each cation-anion pair. This package provides data-driven refinement of these parameters by:
+Companion project docs:
 
-1. Fetching crystal structure data from the Materials Project API
-2. Computing theoretical bond valences using network equations (valence sum rule and Kirchhoff's laws)
-3. Optimizing $R_0$ and $B$ to match computed and empirical values using multiple global optimization algorithms
+- [AGENTS.md](AGENTS.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [docs/adr/](docs/adr/)
+- [docs/integrations/critical_mineral_project.md](docs/integrations/critical_mineral_project.md)
 
-## Prerequisites
+The fitted bond-valence model uses:
 
-- **Python 3.9+**
-- A **Materials Project API key** (free). Register at [materialsproject.org](https://materialsproject.org/) and get your key from [your dashboard](https://materialsproject.org/api#api-key).
+`Sij = exp((R0 - Rij) / B)`
+
+where `Sij` is theoretical bond valence and `Rij` is bond length.
 
 ## Installation
-
-### 1. Clone the repository
 
 ```bash
 git clone https://github.com/MWhitta/ScreenedBondValence.git
 cd ScreenedBondValence
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
 ```
 
-### 2. Create a virtual environment (recommended)
+You need a Materials Project API key for workflows that call MP directly.
 
-```bash
-python -m venv SBV
-source SBV/bin/activate    # macOS/Linux
-# SBV\Scripts\activate     # Windows
-```
-
-### 3. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-## Usage
-
-### As a Python script
+## Python API
 
 ```python
-from bond_valence_processor import BondValenceProcessor
-
-cations = ['Li']  # list of cation species to process
-anions = ['O']    # list of anion species to process
-my_api_key = "your_api_key"  # your Materials Project API key
-
-# optimization algorithms to use
-algos = ['shgo', 'brute', 'diff', 'dual_annealing', 'direct']
-
-processor = BondValenceProcessor(my_api_key, algos, cations, anions)
-
-for cation in cations:
-    for anion in anions:
-        processor.process_cation_system(cation, anion)
+from screened_bond_valence import (
+    BondValenceProcessor,
+    ScreenedBondValenceService,
+    build_material_from_cif,
+    build_summary_payload,
+)
 ```
 
-### As a Jupyter Notebook
+### Fit a single CIF
 
-See [BVparams_fit_example.ipynb](BVparams_fit_example.ipynb) for an interactive walkthrough. To run it:
+If oxidation states are missing from the CIF, the package asks `pymatgen`
+to infer them with `BVAnalyzer`, then falls back to
+`Structure.add_oxidation_state_by_guess()` if needed.
+
+```python
+from screened_bond_valence import ScreenedBondValenceService, build_material_from_cif
+
+material = build_material_from_cif(
+    "1011191_aspod.cif",
+    cation="Li",
+    anion="O",
+)
+
+service = ScreenedBondValenceService(algorithms=("shgo", "diff"))
+result = service.fit_material(material)
+summary = result.aggregate()
+
+print(summary.to_dict())
+```
+
+### Fit Materials Project structures
+
+```python
+from screened_bond_valence import BondValenceProcessor
+
+processor = BondValenceProcessor(
+    api_key="your_api_key",
+    algos=["shgo", "brute", "diff", "dual_annealing", "direct"],
+    cations=["Li"],
+    anions=["O"],
+)
+
+processor.process_cation_system("Li", "O")
+```
+
+The batch processor resumes previous runs by skipping materials that already
+have fitted outputs for every configured algorithm, while preserving the
+existing `dict_sijs.json`, `dict_charges.json`, and `no_solu/` records.
+
+### Export a downstream JSON payload
+
+`build_summary_payload` accepts:
+
+- `classifier`: decide which output bucket each fitted material belongs to
+- `serializer`: control the JSON schema for each summary
+
+```python
+from screened_bond_valence import build_summary_payload
+
+payload = build_summary_payload(
+    results,
+    classifier=lambda summary: "hydroxides" if "OH" in (summary.formula_pretty or "") else "oxides",
+    serializer=lambda summary: summary.to_compact_dict(),
+)
+```
+
+This matches the minimal shape currently consumed by `CriticalMineralProject`.
+
+## CLI
+
+The installed CLI keeps the batch and web workflows available without
+separate top-level scripts.
+
+### Batch fitting
 
 ```bash
-jupyter notebook BVparams_fit_example.ipynb
+screened-bond-valence batch \
+  --api-key "$MP_API_KEY" \
+  --cations Li Na \
+  --anions O \
+  --algorithms shgo diff \
+  --output-dir res
 ```
 
-**Important:** Replace `"your_api_key"` in the notebook with your actual Materials Project API key before running.
+### Web app
 
-## Optimization Algorithms
-
-The package supports five global optimization algorithms from `scipy.optimize`:
-
-| Algorithm | Key | Description |
-|---|---|---|
-| SHGO | `shgo` | Simplicial Homology Global Optimization |
-| Brute Force | `brute` | Grid search over parameter space |
-| Differential Evolution | `diff` | Stochastic population-based optimizer |
-| Dual Annealing | `dual_annealing` | Combines classical simulated annealing with fast simulated annealing |
-| DIRECT | `direct` | DIviding RECTangles algorithm |
-
-## Output
-
-Results are saved in a `res/` directory organized by cation-anion system:
-
+```bash
+screened-bond-valence web --server-name 127.0.0.1 --server-port 7860
 ```
+
+You can also launch the CLI with:
+
+```bash
+python -m screened_bond_valence web
+```
+
+## Outputs
+
+```text
 res/
 └── LiO/
     ├── params/
     │   └── dict_matID_possible_species.json
     ├── R0Bs/
-    │   ├── shgo/
-    │   ├── brute/
-    │   ├── diff/
-    │   ├── dual_annealing/
-    │   └── direct/
     ├── no_solu/
     ├── dict_sijs.json
     └── dict_charges.json
 ```
 
-- **`R0Bs/<algorithm>/`** - Optimized $R_0$ and $B$ values per material, per algorithm
-- **`no_solu/`** - Materials where parameter fitting failed
-- **`dict_sijs.json`** - Computed theoretical bond valences
-- **`dict_charges.json`** - Element charge assignments
-
-## Project Structure
-
-```
-ScreenedBondValence/
-├── bond_valence_processor.py    # Main processor: API calls, pipeline orchestration
-├── BVparams_search.py           # Core: theoretical bond valence solver & parameter optimizer
-├── BVparams_fit_example.ipynb   # Example Jupyter notebook
-├── element2charge.json          # Default element-to-oxidation-state mapping
-├── 1011191_aspod.cif            # Sample CIF file (Spodumene, LiAlSi2O6)
-├── requirements.txt             # Python dependencies
-└── README.md
-```
-
-## Web App (Gradio)
-
-An interactive web interface is included for calculating bond valence parameters from a single CIF file without using the Materials Project API.
-
-### Run locally
+## Development
 
 ```bash
-pip install -r requirements.txt
-python app.py
+PYTHONPATH=. python -m unittest discover -s tests -v
 ```
 
-Then open the URL printed in the terminal (typically `http://127.0.0.1:7860`).
-
-### Deploy to HuggingFace Spaces
-
-1. Create a new Space at [huggingface.co/new-space](https://huggingface.co/new-space) with SDK **Gradio**
-2. Push this repo to the Space:
-   ```bash
-   git remote add hf https://huggingface.co/spaces/YOUR_USERNAME/BVSearchApp
-   git push hf main
-   ```
-3. The Space will build and deploy automatically
+Golden regression coverage for representative sample materials lives in
+`tests/golden/` and `tests/test_golden_outputs.py`.
 
 ## References
 

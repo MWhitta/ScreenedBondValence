@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "screened-bond-valence"
+version = "0.2.0"
+description = "Reusable bond valence fitting APIs for crystal-structure workflows"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "gradio>=5.20.1",
+    "mp-api>=0.41.0",
+    "networkx>=3.0",
+    "numpy>=1.24.0",
+    "pymatgen>=2024.1.1",
+    "scipy>=1.10.0",
+    "sympy>=1.12",
+    "tqdm>=4.60.0",
+]
+
+[project.scripts]
+screened-bond-valence = "screened_bond_valence.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["screened_bond_valence*"]
